@@ -15,18 +15,21 @@ datasource db {
 }
 
 model Meme {
-    id          String   @id @default(cuid())
-    title       String
-    imageUrl    String
-    publicId    String
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+    id        String   @id @default(cuid())
+    title     String
+    imageUrl  String
+    publicId  String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
     createdBy   User   @relation(fields: [createdById], references: [id])
     createdById String
 
     @@index([title])
     @@index([createdById])
+    @@index([createdAt])
+    @@index([createdById, createdAt])
+    @@index([createdAt, id])
 }
 
 // Necessary for Next auth
