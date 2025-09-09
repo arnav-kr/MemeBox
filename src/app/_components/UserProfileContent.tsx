@@ -163,7 +163,6 @@ export default function UserProfileContent({
           currentUserId={currentUser?.id}
           isAdmin={profile.isAdmin}
           userId={profile.user.id}
-          initialLimit={12}
           showControls={true}
           onDelete={handleMemeDelete}
           onVoteChange={handleVoteChange}

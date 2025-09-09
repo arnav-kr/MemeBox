@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState, useEffect } from "react";
 import MemeCard from "./MemeCard";
 
 interface MemeGridProps {
@@ -38,39 +39,80 @@ export default function MemeGrid({
   onVoteChange,
   loading = false,
 }: MemeGridProps) {
+  const [columnCount, setColumnCount] = useState(4);
+
+  useEffect(() => {
+    const updateColumnCount = () => {
+      const width = window.innerWidth;
+      if (width >= 1536)
+        setColumnCount(4); // 2xl
+      else if (width >= 1280)
+        setColumnCount(3); // xl
+      else if (width >= 1024)
+        setColumnCount(3); // lg
+      else if (width >= 640)
+        setColumnCount(2); // sm
+      else setColumnCount(1);
+    };
+
+    updateColumnCount();
+    window.addEventListener("resize", updateColumnCount);
+    return () => window.removeEventListener("resize", updateColumnCount);
+  }, []);
+
+  const memeColumns = useMemo(() => {
+    const columns: Array<
+      Array<MemeGridProps["memes"][0] & { originalIndex: number }>
+    > = Array.from({ length: columnCount }, () => []);
+
+    memes.forEach((meme, index) => {
+      const columnIndex = index % columnCount;
+      columns[columnIndex]!.push({
+        ...meme,
+        originalIndex: index,
+      });
+    });
+
+    return columns;
+  }, [memes, columnCount]);
+
   if (loading) {
     return (
-      <div className="masonry-container columns-1 gap-6 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-4">
-        {[...(Array(8) as Array<unknown>)].map((_, i) => (
-          <div
-            key={i}
-            className="masonry-item mb-6 animate-pulse overflow-hidden rounded-xl bg-white/5 shadow-lg backdrop-blur-sm"
-          >
-            <div className="flex items-center gap-3 p-4">
-              <div className="h-8 w-8 rounded-full bg-neutral-700/70" />
-              <div className="flex-1">
-                <div className="mb-1 h-4 rounded bg-neutral-700/50" />
-                <div className="h-3 w-20 rounded bg-neutral-800/50" />
-              </div>
-            </div>
-
-            <div
-              className="bg-neutral-700/40"
-              style={{
-                height: `${200 + (i % 4) * 100}px`,
-              }}
-            />
-
-            <div className="p-4">
-              <div className="mb-3 h-6 rounded bg-neutral-700/50" />
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="h-8 w-16 rounded-full bg-neutral-700/40" />
-                  <div className="h-8 w-8 rounded-full bg-neutral-700/40" />
+      <div className="flex gap-6">
+        {Array.from({ length: columnCount }, (_, columnIndex) => (
+          <div key={columnIndex} className="flex-1 space-y-6">
+            {[...(Array(2) as Array<unknown>)].map((_, i) => (
+              <div
+                key={i}
+                className="animate-pulse overflow-hidden rounded-xl bg-white/5 shadow-lg backdrop-blur-sm"
+              >
+                <div className="flex items-center gap-3 p-4">
+                  <div className="h-8 w-8 rounded-full bg-neutral-700/70" />
+                  <div className="flex-1">
+                    <div className="mb-1 h-4 rounded bg-neutral-700/50" />
+                    <div className="h-3 w-20 rounded bg-neutral-800/50" />
+                  </div>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-neutral-700/40" />
+
+                <div
+                  className="bg-neutral-700/40"
+                  style={{
+                    height: `${200 + (i % 4) * 100}px`,
+                  }}
+                />
+
+                <div className="p-4">
+                  <div className="mb-3 h-6 rounded bg-neutral-700/50" />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="h-8 w-16 rounded-full bg-neutral-700/40" />
+                      <div className="h-8 w-8 rounded-full bg-neutral-700/40" />
+                    </div>
+                    <div className="h-8 w-8 rounded-full bg-neutral-700/40" />
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         ))}
       </div>
@@ -108,16 +150,20 @@ export default function MemeGrid({
   }
 
   return (
-    <div className="masonry-container columns-1 gap-6 sm:columns-2 lg:columns-3 xl:columns-3 2xl:columns-4">
-      {memes.map((meme) => (
-        <div key={meme.id} className="masonry-item mb-6">
-          <MemeCard
-            meme={meme}
-            currentUserId={currentUserId}
-            isAdmin={isAdmin}
-            onDelete={onDelete}
-            onVoteChange={onVoteChange}
-          />
+    <div className="flex gap-6">
+      {memeColumns.map((column, columnIndex) => (
+        <div key={columnIndex} className="flex-1 space-y-6">
+          {column.map((meme) => (
+            <div key={meme.id} className="w-full">
+              <MemeCard
+                meme={meme}
+                currentUserId={currentUserId}
+                isAdmin={isAdmin}
+                onDelete={onDelete}
+                onVoteChange={onVoteChange}
+              />
+            </div>
+          ))}
         </div>
       ))}
     </div>

@@ -43,7 +43,6 @@ export const userRouter = createTRPCRouter({
       };
     }),
 
-  // Get user profile by slug (supports "me" for current user)
   profile: publicProcedure
     .input(z.object({ slug: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -51,7 +50,6 @@ export const userRouter = createTRPCRouter({
       let isOwnProfile = false;
       let isAdmin = false;
 
-      // Handle "me" special case
       if (input.slug === "me") {
         if (!ctx.session?.user) {
           throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -59,7 +57,6 @@ export const userRouter = createTRPCRouter({
         targetUserId = ctx.session.user.id;
         isOwnProfile = true;
       } else {
-        // Find user by slug (assuming slug is user ID for now, can be username later)
         const user = await ctx.db.user.findUnique({
           where: { id: input.slug },
         });
@@ -72,7 +69,6 @@ export const userRouter = createTRPCRouter({
         isOwnProfile = ctx.session?.user?.id === targetUserId;
       }
 
-      // Check if current user is admin
       if (ctx.session?.user) {
         const currentUser = await ctx.db.user.findUnique({
           where: { id: ctx.session.user.id },
@@ -81,7 +77,6 @@ export const userRouter = createTRPCRouter({
         isAdmin = currentUser?.role === "ADMIN";
       }
 
-      // Get target user info
       const targetUser = await ctx.db.user.findUnique({
         where: { id: targetUserId },
         select: {
@@ -97,13 +92,11 @@ export const userRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
       }
 
-      // Get meme stats (we'll fetch actual memes on the frontend using meme.list)
       const memeStats = await ctx.db.meme.aggregate({
         where: { createdById: targetUserId },
         _count: { id: true },
       });
 
-      // Get vote stats for this user
       const voteStats = await ctx.db.vote.aggregate({
         where: { userId: targetUserId },
         _count: { id: true },

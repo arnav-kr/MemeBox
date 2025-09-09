@@ -11,18 +11,16 @@ import {
 interface MemeGridWithControlsProps {
   currentUserId?: string;
   isAdmin?: boolean;
-  userId?: string;
-  initialLimit?: number;
-  showControls?: boolean;
   onDelete?: (memeId: string) => void;
   onVoteChange?: (voteDelta: number) => void;
+  userId?: string;
+  showControls?: boolean;
 }
 
 export default function MemeGridWithControls({
   currentUserId,
   isAdmin,
   userId,
-  initialLimit = 40,
   showControls = true,
   onDelete,
   onVoteChange,
@@ -32,8 +30,30 @@ export default function MemeGridWithControls({
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [showSortOptions, setShowSortOptions] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = api.meme.list.useInfiniteQuery(
+    {
+      limit: 20,
+      search: search || undefined,
+      sortBy,
+      sortOrder,
+      userId,
+    },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+    },
+  );
+
+  const memes = data?.pages.flatMap((page) => page.memes) ?? [];
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
@@ -41,23 +61,34 @@ export default function MemeGridWithControls({
       }
     };
 
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (
+          entry?.isIntersecting &&
+          hasNextPage &&
+          !isFetchingNextPage &&
+          !isLoading &&
+          memes.length > 0
+        ) {
+          void fetchNextPage();
+        }
+      },
+      {
+        rootMargin: "100px",
+        threshold: 0.1,
+      },
+    );
+
+    if (loadMoreRef.current && memes.length > 0 && hasNextPage) {
+      observer.observe(loadMoreRef.current);
+    }
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
+      observer.disconnect();
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
-
-  const {
-    data: memes,
-    isLoading,
-    error,
-  } = api.meme.list.useQuery({
-    limit: initialLimit,
-    search: search || undefined,
-    sortBy,
-    sortOrder,
-    userId,
-  });
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, isLoading, memes.length]);
 
   const handleSearch = (value: string) => {
     setSearch(value);
@@ -177,13 +208,21 @@ export default function MemeGridWithControls({
       )}
 
       <MemeGrid
-        memes={memes?.memes ?? []}
+        memes={memes}
         currentUserId={currentUserId}
         isAdmin={isAdmin}
         loading={isLoading}
         onDelete={onDelete}
         onVoteChange={onVoteChange}
       />
+
+      {hasNextPage && (
+        <div ref={loadMoreRef} className="mt-8 flex justify-center py-4">
+          {isFetchingNextPage && (
+            <div className="text-neutral-400">Loading more memes...</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

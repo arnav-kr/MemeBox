@@ -15,7 +15,6 @@ export default function HomeMemeGrid({
     <MemeGridWithControls
       currentUserId={currentUserId}
       isAdmin={isAdmin}
-      initialLimit={40}
       showControls={true}
     />
   );

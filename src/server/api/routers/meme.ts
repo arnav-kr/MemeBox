@@ -302,17 +302,15 @@ export const memeRouter = createTRPCRouter({
   upload: protectedProcedure
     .input(z.object({
       title: z.string().min(1).max(100),
-      imageData: z.string().min(1), // base64 encoded image data
+      imageData: z.string().min(1),
     }))
     .mutation(async ({ ctx, input }) => {
       try {
-        // Upload image to Cloudinary
         const uploadResult = await ctx.cloudinary.uploadAsset(
           input.imageData,
           "memes"
         );
 
-        // Create meme record in database
         const meme = await ctx.db.meme.create({
           data: {
             title: input.title,
@@ -385,7 +383,6 @@ export const memeRouter = createTRPCRouter({
 
   leaderboard: publicProcedure
     .query(async ({ ctx }) => {
-      // Get all memes with their vote counts
       const memes = await ctx.db.meme.findMany({
         include: {
           createdBy: {
@@ -405,7 +402,6 @@ export const memeRouter = createTRPCRouter({
 
       const memeIds = memes.map(meme => meme.id);
 
-      // Get vote counts for all memes
       const voteCounts = await ctx.db.vote.groupBy({
         by: ['memeId', 'type'],
         where: {
@@ -415,8 +411,6 @@ export const memeRouter = createTRPCRouter({
           id: true,
         },
       });
-
-      // Get user votes if logged in
       const userVotes = ctx.session?.user ? await ctx.db.vote.findMany({
         where: {
           memeId: { in: memeIds },
@@ -428,7 +422,6 @@ export const memeRouter = createTRPCRouter({
         },
       }) : [];
 
-      // Calculate net score (upvotes - downvotes) for each meme
       const memesWithScores = memes.map((meme) => {
         const upVotes = voteCounts.find(vc => vc.memeId === meme.id && vc.type === "UP")?._count.id ?? 0;
         const downVotes = voteCounts.find(vc => vc.memeId === meme.id && vc.type === "DOWN")?._count.id ?? 0;
@@ -447,7 +440,6 @@ export const memeRouter = createTRPCRouter({
         };
       });
 
-      // Sort by net score (highest first) and take top 5
       const topMemes = memesWithScores
         .sort((a, b) => b.voteStats.netScore - a.voteStats.netScore)
         .slice(0, 5);
