@@ -14,7 +14,7 @@ export default async function UploadPage() {
 
   return (
     <HydrateClient>
-      <Header />
+      <Header session={session} />
       <main className="flex min-h-screen flex-col bg-neutral-950 pt-16 text-neutral-50">
         <div className="container mx-auto max-w-2xl px-6 py-8 md:px-10 lg:px-16">
           <div className="mb-8 text-center">

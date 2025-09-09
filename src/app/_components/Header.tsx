@@ -1,19 +1,24 @@
-import { auth } from "@/server/auth";
 import Link from "next/link";
 import React from "react";
 import Image from "next/image";
 import { PlusIcon } from "@heroicons/react/24/outline";
+import type { Session } from "next-auth";
+import MobileMenu from "./MobileMenu";
 
-export default async function Header({ activePage }: { activePage?: string }) {
-  const session = await auth();
-
+export default function Header({
+  activePage,
+  session,
+}: {
+  activePage?: string;
+  session: Session | null;
+}) {
   return (
     <header className="fixed top-0 right-0 left-0 z-[99999999] flex w-full items-center justify-between border-b border-neutral-900 bg-neutral-950 px-6 py-3 text-white">
       <Link href="/">
         <h1 className="text-xl font-semibold">Meme Box 📦</h1>
       </Link>
 
-      <div className="flex items-center space-x-4">
+      <div className="hidden items-center space-x-4 md:flex">
         {session?.user ? (
           <>
             <Link
@@ -26,7 +31,7 @@ export default async function Header({ activePage }: { activePage?: string }) {
             </Link>
             <Link
               href="/upload"
-              className="inline-flex items-center rounded-full border border-neutral-700 bg-transparent px-4 py-2 text-sm font-semibold text-neutral-300 transition-all duration-200 hover:border-neutral-700 hover:bg-neutral-800 hover:text-white"
+              className="inline-flex cursor-pointer items-center rounded-full border border-neutral-700 bg-transparent px-4 py-2 text-sm font-semibold text-neutral-300 transition-all duration-200 hover:border-neutral-700 hover:bg-neutral-800 hover:text-white"
             >
               <PlusIcon className="mr-1.5 h-4 w-4" />
               Upload
@@ -51,13 +56,14 @@ export default async function Header({ activePage }: { activePage?: string }) {
             </Link>
             <Link
               href="/api/auth/signin"
-              className="ease rounded-lg bg-neutral-800 px-8 py-2 font-semibold no-underline transition duration-100 hover:bg-white/10 active:scale-[99%]"
+              className="ease cursor-pointer rounded-lg bg-neutral-800 px-8 py-2 font-semibold no-underline transition duration-100 hover:bg-white/10 active:scale-[99%]"
             >
               Sign in
             </Link>
           </>
         )}
       </div>
+      <MobileMenu session={session} />
     </header>
   );
 }

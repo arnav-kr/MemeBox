@@ -102,9 +102,7 @@ export default function UserProfileContent({
 
   return (
     <div className="container px-6 py-8 md:px-10 lg:px-16">
-      {/* profile */}
       <div className="mb-12">
-        {/* Profile Header */}
         <div className="flex flex-col items-center gap-8 lg:flex-row lg:items-center lg:gap-12">
           <div className="relative h-20 w-20 shrink-0 md:h-24 md:w-24">
             {profile.user.image ? (
@@ -126,7 +124,6 @@ export default function UserProfileContent({
               {profile.user.name ?? "Anonymous User"}
             </h1>
 
-            {/* Stats - Vertical on mobile, horizontal on desktop */}
             <div className="flex flex-row justify-center gap-6 sm:gap-12 lg:justify-start lg:gap-16">
               <div className="text-center lg:text-left">
                 <div className="text-xl font-semibold text-white">
@@ -151,7 +148,6 @@ export default function UserProfileContent({
         </div>
       </div>
 
-      {/* memes */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-white">

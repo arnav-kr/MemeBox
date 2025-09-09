@@ -27,7 +27,7 @@ export default async function UserProfilePage({
 
   return (
     <HydrateClient>
-      <Header />
+      <Header session={session} />
       <main className="flex min-h-screen flex-col items-center bg-neutral-950 pt-16 text-neutral-50">
         <UserProfileContent
           slug={slug}

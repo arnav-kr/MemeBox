@@ -101,7 +101,7 @@ export default function MemeGrid({
         <p className="mx-auto max-w-md leading-relaxed text-neutral-400">
           {currentUserId
             ? "Start by uploading your first meme to get the fun started!"
-            : "This user hasn't shared any memes yet. Check back later!"}
+            : "No memes have been shared yet. Check back later!"}
         </p>
       </div>
     );

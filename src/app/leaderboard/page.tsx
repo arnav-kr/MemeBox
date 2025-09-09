@@ -8,7 +8,7 @@ export default async function LeaderboardPage() {
 
   return (
     <>
-      <Header activePage="leaderboard" />
+      <Header activePage="leaderboard" session={session} />
       <main className="flex min-h-screen flex-col bg-neutral-950 text-neutral-50">
         <LeaderboardContent
           currentUserId={session?.user?.id}

@@ -12,10 +12,9 @@ export default async function Home() {
 
   return (
     <HydrateClient>
-      <Header />
-      <main className="flex min-h-screen flex-col bg-neutral-950 text-neutral-50 pt-16">
+      <Header session={session} />
+      <main className="flex min-h-screen flex-col bg-neutral-950 pt-16 text-neutral-50">
         <div className="container mx-auto px-6 py-8 md:px-10 lg:px-16">
-          {/* Welcome Section */}
           <div className="mb-8 text-center">
             {session ? (
               <PersonalizedGreeting name={session.user?.name} />
@@ -36,8 +35,6 @@ export default async function Home() {
               </>
             )}
           </div>
-
-          {/* Meme Grid Section */}
           <div className="mt-12">
             <div className="mb-6 text-center">
               <h2 className="mb-2 text-2xl font-bold text-white">
