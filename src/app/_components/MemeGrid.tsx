@@ -39,20 +39,16 @@ export default function MemeGrid({
   onVoteChange,
   loading = false,
 }: MemeGridProps) {
-  const [columnCount, setColumnCount] = useState(4);
+  const [columnCount, setColumnCount] = useState(1);
 
   useEffect(() => {
     const updateColumnCount = () => {
       const width = window.innerWidth;
-      if (width >= 1536)
-        setColumnCount(4); // 2xl
-      else if (width >= 1280)
-        setColumnCount(3); // xl
-      else if (width >= 1024)
-        setColumnCount(3); // lg
-      else if (width >= 640)
-        setColumnCount(2); // sm
-      else setColumnCount(1);
+      if (width >= 1536) setColumnCount(4); // 2xl
+      else if (width >= 1280) setColumnCount(3); // xl  
+      else if (width >= 1024) setColumnCount(3); // lg
+      else if (width >= 640) setColumnCount(2);  // sm
+      else setColumnCount(1); // phone
     };
 
     updateColumnCount();
@@ -78,7 +74,7 @@ export default function MemeGrid({
 
   if (loading) {
     return (
-      <div className="flex gap-6">
+      <div className="flex gap-6 sm:text-red-400">
         {Array.from({ length: columnCount }, (_, columnIndex) => (
           <div key={columnIndex} className="flex-1 space-y-6">
             {[...(Array(2) as Array<unknown>)].map((_, i) => (

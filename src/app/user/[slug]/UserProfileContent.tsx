@@ -22,7 +22,6 @@ interface UserProfileContentProps {
 export default function UserProfileContent({
   slug,
   currentUser,
-  isLoggedIn,
 }: UserProfileContentProps) {
   const {
     data: profile,
