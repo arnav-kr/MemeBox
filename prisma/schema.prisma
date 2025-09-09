@@ -86,6 +86,7 @@ model Session {
 enum Role {
     USER
     ADMIN
+    BOT
 }
 
 model User {
@@ -94,6 +95,7 @@ model User {
     name          String?
     email         String?   @unique
     emailVerified DateTime?
+    createdAt     DateTime  @default(now())
     image         String?
     accounts      Account[]
     sessions      Session[]

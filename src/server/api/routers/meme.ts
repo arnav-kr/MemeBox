@@ -15,38 +15,48 @@ export const memeRouter = createTRPCRouter({
       search: z.string().optional(),
       sortBy: z.enum(["createdAt", "title"]).default("createdAt"),
       sortOrder: z.enum(["asc", "desc"]).default("desc"),
+      userId: z.string().optional(),
     }))
     .query(async ({ ctx, input }) => {
-      const { cursor, limit, search, sortBy, sortOrder } = input;
+      const { cursor, limit, search, sortBy, sortOrder, userId } = input;
 
-      const whereClause = search ? {
-        title: {
+      const whereClause: {
+        title?: { contains: string; mode: "insensitive" };
+        createdById?: string;
+      } = {};
+
+      if (search) {
+        whereClause.title = {
           contains: search,
           mode: "insensitive" as const,
-        },
-      } : {};
+        };
+      }
+
+      if (userId) {
+        whereClause.createdById = userId;
+      }
 
       const orderBy = { [sortBy]: sortOrder };
 
       const memes = await ctx.db.meme.findMany({
-        take: limit + 1, // check for extra for next page
+        take: limit + 1,
         cursor: cursor ? { id: cursor } : undefined,
         orderBy: [
           orderBy,
           { id: "asc" },
         ],
         where: whereClause,
-        select: {
-          id: true,
-          title: true,
-          imageUrl: true,
-          createdAt: true,
-          updatedAt: true,
+        include: {
           createdBy: {
             select: {
               id: true,
               name: true,
               image: true,
+            },
+          },
+          _count: {
+            select: {
+              votes: true,
             },
           },
         },
@@ -88,13 +98,15 @@ export const memeRouter = createTRPCRouter({
 
         return {
           ...meme,
-          _count: undefined,
-          voteCount: {
-            up: upVotes,
-            down: downVotes,
+          _count: {
+            votes: upVotes + downVotes,
+          },
+          voteStats: {
+            upVotes,
+            downVotes,
             total: upVotes - downVotes,
           },
-          userVote,
+          userVote: userVote as "UP" | "DOWN" | null,
         };
       });
 
@@ -108,76 +120,6 @@ export const memeRouter = createTRPCRouter({
           sortBy,
           sortOrder,
         },
-      };
-    }),
-
-  my: protectedProcedure
-    .input(z.object({
-      limit: z.number().min(1).max(100).default(10),
-      cursor: z.string().optional(),
-    }))
-    .query(async ({ ctx, input }) => {
-      const { limit, cursor } = input;
-
-      const whereClause = {
-        createdById: ctx.session.user.id,
-      };
-
-      const memes = await ctx.db.meme.findMany({
-        take: limit + 1,
-        cursor: cursor ? { id: cursor } : undefined,
-        orderBy: [
-          { createdAt: "desc" },
-          { id: "asc" },
-        ],
-        where: whereClause,
-        select: {
-          id: true,
-          title: true,
-          imageUrl: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
-
-      let nextCursor: string | undefined = undefined;
-      if (memes.length > limit) {
-        const nextItem = memes.pop()!;
-        nextCursor = nextItem.id;
-      }
-
-      const memeIds = memes.map(meme => meme.id);
-
-      const voteCounts = await ctx.db.vote.groupBy({
-        by: ['memeId', 'type'],
-        where: {
-          memeId: { in: memeIds },
-        },
-        _count: {
-          id: true,
-        },
-      });
-
-      const memesWithVoteData = memes.map((meme) => {
-        const upVotes = voteCounts.find(vc => vc.memeId === meme.id && vc.type === "UP")?._count.id ?? 0;
-        const downVotes = voteCounts.find(vc => vc.memeId === meme.id && vc.type === "DOWN")?._count.id ?? 0;
-
-        return {
-          ...meme,
-          voteCount: {
-            up: upVotes,
-            down: downVotes,
-            total: upVotes - downVotes,
-          },
-        };
-      });
-
-      return {
-        memes: memesWithVoteData,
-        nextCursor,
-        hasMore: !!nextCursor,
-        totalCount: memesWithVoteData.length,
-        userId: ctx.session.user.id,
       };
     }),
 
@@ -234,9 +176,12 @@ export const memeRouter = createTRPCRouter({
 
       return {
         ...meme,
-        voteCount: {
-          up: upVotes,
-          down: downVotes,
+        _count: {
+          votes: upVotes + downVotes,
+        },
+        voteStats: {
+          upVotes,
+          downVotes,
           total: upVotes - downVotes,
         },
         userVote: userVote?.type ?? null,
@@ -355,9 +300,159 @@ export const memeRouter = createTRPCRouter({
     }),
 
   upload: protectedProcedure
-    .input(z.object({ name: z.string().min(1) }))
+    .input(z.object({
+      title: z.string().min(1).max(100),
+      imageData: z.string().min(1), // base64 encoded image data
+    }))
     .mutation(async ({ ctx, input }) => {
-      // TODO: implement upload
+      try {
+        // Upload image to Cloudinary
+        const uploadResult = await ctx.cloudinary.uploadAsset(
+          input.imageData,
+          "memes"
+        );
+
+        // Create meme record in database
+        const meme = await ctx.db.meme.create({
+          data: {
+            title: input.title,
+            imageUrl: uploadResult.secure_url,
+            publicId: uploadResult.public_id,
+            createdById: ctx.session.user.id,
+          },
+          include: {
+            createdBy: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+          },
+        });
+
+        return {
+          success: true,
+          message: "Meme uploaded successfully!",
+          meme,
+          uploadResult: {
+            publicId: uploadResult.public_id,
+            imageUrl: uploadResult.secure_url,
+            width: uploadResult.width,
+            height: uploadResult.height,
+          },
+        };
+      } catch (error) {
+        console.error("Upload error:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to upload meme",
+          cause: error,
+        });
+      }
+    }),
+
+  create: protectedProcedure
+    .input(z.object({
+      title: z.string().min(1),
+      imageUrl: z.string().url(),
+      publicId: z.string().min(1),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const meme = await ctx.db.meme.create({
+        data: {
+          title: input.title,
+          imageUrl: input.imageUrl,
+          publicId: input.publicId,
+          createdById: ctx.session.user.id,
+        },
+        include: {
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+        },
+      });
+
+      return {
+        success: true,
+        meme,
+      };
+    }),
+
+  leaderboard: publicProcedure
+    .query(async ({ ctx }) => {
+      // Get all memes with their vote counts
+      const memes = await ctx.db.meme.findMany({
+        include: {
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+          _count: {
+            select: {
+              votes: true,
+            },
+          },
+        },
+      });
+
+      const memeIds = memes.map(meme => meme.id);
+
+      // Get vote counts for all memes
+      const voteCounts = await ctx.db.vote.groupBy({
+        by: ['memeId', 'type'],
+        where: {
+          memeId: { in: memeIds },
+        },
+        _count: {
+          id: true,
+        },
+      });
+
+      // Get user votes if logged in
+      const userVotes = ctx.session?.user ? await ctx.db.vote.findMany({
+        where: {
+          memeId: { in: memeIds },
+          userId: ctx.session.user.id,
+        },
+        select: {
+          memeId: true,
+          type: true,
+        },
+      }) : [];
+
+      // Calculate net score (upvotes - downvotes) for each meme
+      const memesWithScores = memes.map((meme) => {
+        const upVotes = voteCounts.find(vc => vc.memeId === meme.id && vc.type === "UP")?._count.id ?? 0;
+        const downVotes = voteCounts.find(vc => vc.memeId === meme.id && vc.type === "DOWN")?._count.id ?? 0;
+        const userVote = userVotes.find(uv => uv.memeId === meme.id)?.type ?? null;
+        const netScore = upVotes - downVotes;
+
+        return {
+          ...meme,
+          voteStats: {
+            upVotes,
+            downVotes,
+            total: upVotes + downVotes,
+            netScore,
+          },
+          userVote,
+        };
+      });
+
+      // Sort by net score (highest first) and take top 5
+      const topMemes = memesWithScores
+        .sort((a, b) => b.voteStats.netScore - a.voteStats.netScore)
+        .slice(0, 5);
+
+      return topMemes;
     }),
 
 });

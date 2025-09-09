@@ -1,6 +1,53 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
+  --font-sans:
+    var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+/* Masonry Layout Optimizations */
+.masonry-container {
+  column-fill: balance;
+}
+
+.masonry-item {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  display: inline-block;
+  width: 100%;
+  vertical-align: top;
+  animation: masonry-item-in 0.4s ease-out;
+}
+
+/* Smooth fade-in animation for masonry items */
+@keyframes masonry-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Ensure smooth transitions for column changes */
+.masonry-container {
+  transition: all 0.3s ease;
+}
+
+/* Modal Dialog Fullscreen Override */
+dialog {
+  padding: 0;
+  margin: 0;
+  border: none;
+  outline: none;
+  max-width: 100vw;
+  max-height: 100vh;
+}
+
+dialog::backdrop {
+  background: transparent;
 }
