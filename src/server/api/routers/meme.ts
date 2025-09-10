@@ -70,26 +70,27 @@ export const memeRouter = createTRPCRouter({
 
       const memeIds = memes.map(meme => meme.id);
 
-      const voteCounts = await ctx.db.vote.groupBy({
-        by: ['memeId', 'type'],
-        where: {
-          memeId: { in: memeIds },
-        },
-        _count: {
-          id: true,
-        },
-      });
-
-      const userVotes = ctx.session?.user ? await ctx.db.vote.findMany({
-        where: {
-          memeId: { in: memeIds },
-          userId: ctx.session.user.id,
-        },
-        select: {
-          memeId: true,
-          type: true,
-        },
-      }) : [];
+      const [voteCounts, userVotes] = await Promise.all([
+        ctx.db.vote.groupBy({
+          by: ['memeId', 'type'],
+          where: {
+            memeId: { in: memeIds },
+          },
+          _count: {
+            id: true,
+          },
+        }),
+        ctx.session?.user ? ctx.db.vote.findMany({
+          where: {
+            memeId: { in: memeIds },
+            userId: ctx.session.user.id,
+          },
+          select: {
+            memeId: true,
+            type: true,
+          },
+        }) : Promise.resolve([])
+      ]);
 
       const memesWithVoteData = memes.map((meme) => {
         const upVotes = voteCounts.find(vc => vc.memeId === meme.id && vc.type === "UP")?._count.id ?? 0;

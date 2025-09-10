@@ -4,6 +4,8 @@ import { api } from "@/trpc/react";
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { signOut } from "next-auth/react";
+import { ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/outline";
 import MemeGridWithControls from "@/app/_components/MemeGridWithControls";
 
 interface CurrentUser {
@@ -119,9 +121,21 @@ export default function UserProfileContent({
           </div>
 
           <div className="flex-1 text-center lg:text-left">
-            <h1 className="mb-4 text-2xl font-bold text-white md:text-3xl lg:mb-2">
-              {profile.user.name ?? "Anonymous User"}
-            </h1>
+            <div className="mb-4 flex flex-col items-center gap-4 lg:mb-2 lg:flex-row lg:items-start lg:justify-between">
+              <h1 className="text-2xl font-bold text-white md:text-3xl">
+                {profile.user.name ?? "Anonymous User"}
+              </h1>
+
+              {profile.isOwnProfile && (
+                <button
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  className="hidden cursor-pointer rounded-lg bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-200 transition-colors hover:bg-neutral-700 hover:text-white md:flex md:items-center md:gap-2"
+                >
+                  <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
+                  Sign Out
+                </button>
+              )}
+            </div>
 
             <div className="flex flex-row justify-center gap-6 sm:gap-12 lg:justify-start lg:gap-16">
               <div className="text-center lg:text-left">

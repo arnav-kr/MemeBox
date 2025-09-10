@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, memo } from "react";
 import Image from "next/image";
 import {
   XMarkIcon,
@@ -14,12 +14,7 @@ interface ImageModalProps {
   title: string;
 }
 
-export default function ImageModal({
-  isOpen,
-  onClose,
-  imageUrl,
-  title,
-}: ImageModalProps) {
+function ImageModal({ isOpen, onClose, imageUrl, title }: ImageModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -110,3 +105,5 @@ export default function ImageModal({
     </dialog>
   );
 }
+
+export default memo(ImageModal);

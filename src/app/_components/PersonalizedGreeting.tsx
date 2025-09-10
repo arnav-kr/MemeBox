@@ -1,11 +1,8 @@
 "use client";
 import { api } from "@/trpc/react";
+import { memo } from "react";
 
-export default function PersonalizedGreeting({
-  name,
-}: {
-  name: string | null | undefined;
-}) {
+function PersonalizedGreeting({ name }: { name: string | null | undefined }) {
   const { data: greeting } = api.user.keyword.useQuery();
 
   return (
@@ -21,3 +18,5 @@ export default function PersonalizedGreeting({
     </div>
   );
 }
+
+export default memo(PersonalizedGreeting);

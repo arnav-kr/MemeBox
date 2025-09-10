@@ -9,7 +9,7 @@ import {
   XMarkIcon,
   UserIcon,
   TrophyIcon,
-  ArrowRightOnRectangleIcon,
+  ArrowTopRightOnSquareIcon,
 } from "@heroicons/react/24/outline";
 import type { Session } from "next-auth";
 
@@ -63,6 +63,7 @@ export default function MobileMenu({ session }: MobileMenuProps) {
                   <>
                     <Link
                       href="/user/me"
+                      prefetch={true}
                       onClick={closeMobileMenu}
                       className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-white transition-colors hover:bg-neutral-800/50"
                     >
@@ -86,6 +87,7 @@ export default function MobileMenu({ session }: MobileMenuProps) {
                     </Link>
                     <Link
                       href="/leaderboard"
+                      prefetch={true}
                       onClick={closeMobileMenu}
                       className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-neutral-300 transition-colors hover:bg-neutral-800/50 hover:text-white"
                     >
@@ -94,6 +96,7 @@ export default function MobileMenu({ session }: MobileMenuProps) {
                     </Link>
                     <Link
                       href="/upload"
+                      prefetch={true}
                       onClick={closeMobileMenu}
                       className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-neutral-300 transition-colors hover:bg-neutral-800/50 hover:text-white"
                     >
@@ -105,7 +108,7 @@ export default function MobileMenu({ session }: MobileMenuProps) {
                       onClick={closeMobileMenu}
                       className="mt-4 flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-red-400 transition-colors hover:bg-red-500/10"
                     >
-                      <ArrowRightOnRectangleIcon className="h-5 w-5" />
+                      <ArrowTopRightOnSquareIcon className="h-5 w-5" />
                       <div className="text-sm font-medium">Sign Out</div>
                     </Link>
                   </>

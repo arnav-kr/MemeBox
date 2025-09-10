@@ -44,10 +44,14 @@ export default function MemeGrid({
   useEffect(() => {
     const updateColumnCount = () => {
       const width = window.innerWidth;
-      if (width >= 1536) setColumnCount(4); // 2xl
-      else if (width >= 1280) setColumnCount(3); // xl  
-      else if (width >= 1024) setColumnCount(3); // lg
-      else if (width >= 640) setColumnCount(2);  // sm
+      if (width >= 1536)
+        setColumnCount(4); // 2xl
+      else if (width >= 1280)
+        setColumnCount(3); // xl
+      else if (width >= 1024)
+        setColumnCount(3); // lg
+      else if (width >= 640)
+        setColumnCount(2); // sm
       else setColumnCount(1); // phone
     };
 
@@ -157,6 +161,7 @@ export default function MemeGrid({
                 isAdmin={isAdmin}
                 onDelete={onDelete}
                 onVoteChange={onVoteChange}
+                priority={meme.originalIndex < 4}
               />
             </div>
           ))}

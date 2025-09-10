@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import { api } from "@/trpc/react";
 import Image from "next/image";
 import ImageModal from "./ImageModal";
@@ -40,14 +40,16 @@ interface MemeCardProps {
   isAdmin?: boolean;
   onDelete?: (memeId: string) => void;
   onVoteChange?: (voteDelta: number) => void;
+  priority?: boolean; // Add priority prop for above-fold images
 }
 
-export default function MemeCard({
+function MemeCard({
   meme,
   currentUserId,
   isAdmin,
   onDelete,
   onVoteChange,
+  priority = false,
 }: MemeCardProps) {
   const [upVotes, setUpVotes] = useState(meme.voteStats?.upVotes ?? 0);
   const [downVotes, setDownVotes] = useState(meme.voteStats?.downVotes ?? 0);
@@ -60,42 +62,81 @@ export default function MemeCard({
   const netScore = upVotes - downVotes;
 
   const voteMutation = api.meme.vote.useMutation({
+    onMutate: async ({ type }) => {
+      const previousVote = userVote;
+      const previousUpVotes = upVotes;
+      const previousDownVotes = downVotes;
+
+      if (previousVote === null) {
+        setUserVote(type);
+        if (type === "UP") {
+          setUpVotes((prev) => prev + 1);
+          onVoteChange?.(1);
+        } else {
+          setDownVotes((prev) => prev + 1);
+          onVoteChange?.(1);
+        }
+      } else if (previousVote === type) {
+        setUserVote(null);
+        if (type === "UP") {
+          setUpVotes((prev) => prev - 1);
+          onVoteChange?.(-1);
+        } else {
+          setDownVotes((prev) => prev - 1);
+          onVoteChange?.(-1);
+        }
+      } else {
+        setUserVote(type);
+        if (previousVote === "UP" && type === "DOWN") {
+          setUpVotes((prev) => prev - 1);
+          setDownVotes((prev) => prev + 1);
+        } else if (previousVote === "DOWN" && type === "UP") {
+          setDownVotes((prev) => prev - 1);
+          setUpVotes((prev) => prev + 1);
+        }
+      }
+
+      return { previousVote, previousUpVotes, previousDownVotes };
+    },
+    onError: (error, variables, context) => {
+      if (context) {
+        setUserVote(context.previousVote);
+        setUpVotes(context.previousUpVotes);
+        setDownVotes(context.previousDownVotes);
+
+        const currentVote = userVote;
+        if (context.previousVote === null && currentVote !== null) {
+          onVoteChange?.(-1);
+        } else if (context.previousVote !== null && currentVote === null) {
+          onVoteChange?.(1);
+        }
+      }
+      console.error("Vote failed:", error);
+    },
     onSuccess: (data) => {
       const previousVote = userVote;
       setUserVote(data.voteType);
 
-      let voteDelta = 0;
-
       if (data.action === "created") {
         if (data.voteType === "UP") {
           setUpVotes((prev) => prev + 1);
-          voteDelta = 1;
         } else {
           setDownVotes((prev) => prev + 1);
-          voteDelta = 1;
         }
       } else if (data.action === "removed") {
         if (previousVote === "UP") {
           setUpVotes((prev) => prev - 1);
-          voteDelta = -1;
         } else if (previousVote === "DOWN") {
           setDownVotes((prev) => prev - 1);
-          voteDelta = -1;
         }
       } else if (data.action === "updated") {
         if (previousVote === "UP" && data.voteType === "DOWN") {
           setUpVotes((prev) => prev - 1);
           setDownVotes((prev) => prev + 1);
-          voteDelta = 0;
         } else if (previousVote === "DOWN" && data.voteType === "UP") {
           setDownVotes((prev) => prev - 1);
           setUpVotes((prev) => prev + 1);
-          voteDelta = 0;
         }
-      }
-
-      if (onVoteChange && voteDelta !== 0) {
-        onVoteChange(voteDelta);
       }
     },
   });
@@ -221,12 +262,14 @@ export default function MemeCard({
         className="relative cursor-pointer overflow-hidden"
         onClick={() => setIsModalOpen(true)}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={meme.imageUrl}
           alt={meme.title}
+          width={600}
+          height={400}
           className="w-full object-cover transition-transform duration-200 hover:scale-105"
-          loading="lazy"
+          priority={priority}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           style={{
             maxHeight: "600px",
             height: "auto",
@@ -249,7 +292,9 @@ export default function MemeCard({
                 userVote === "UP"
                   ? "bg-red-500/20 text-red-400"
                   : "text-gray-400 hover:bg-red-500/10 hover:text-red-400"
-              } ${!currentUserId ? "cursor-not-allowed opacity-50" : ""}`}
+              } ${!currentUserId ? "cursor-not-allowed opacity-50" : ""} ${
+                voteMutation.isPending ? "animate-pulse opacity-75" : ""
+              }`}
             >
               {userVote === "UP" ? (
                 <HeartSolidIcon className="h-5 w-5" />
@@ -280,7 +325,9 @@ export default function MemeCard({
                 userVote === "DOWN"
                   ? "bg-gray-500/20 text-gray-400"
                   : "text-gray-500 hover:bg-gray-500/10 hover:text-gray-300"
-              } ${!currentUserId ? "cursor-not-allowed opacity-50" : ""}`}
+              } ${!currentUserId ? "cursor-not-allowed opacity-50" : ""} ${
+                voteMutation.isPending ? "animate-pulse opacity-75" : ""
+              }`}
             >
               {userVote === "DOWN" ? (
                 <HandThumbDownSolidIcon className="h-5 w-5" />
@@ -308,3 +355,5 @@ export default function MemeCard({
     </div>
   );
 }
+
+export default memo(MemeCard);
